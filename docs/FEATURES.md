@@ -48,6 +48,8 @@ A foreground `VpnService` on the **child's phone** routes its DNS through K-Guar
 - **Remote settings per child:** the parent edits on/off, custom block/allow lists, educational sites and the AI filter for each child; they're stored in `families/{id}/webProtection/{childId}` and applied on the child's phone within seconds (`ChildWebProtectionSync`). The parent's phone runs no filter of its own.
 - **Status from the child's phone:** running, needs a one-time consent tap, turned off on the device, last report. The parent gets a push when protection is switched off on the phone or needs consent (`onWebProtectionStatus`).
 - **Web-block alerts** for the selected child with Keep blocked / Allow site / Dismiss.
+- **Turning it off on the phone doesn't work:** if the child disconnects the VPN, K-Guard restarts it within seconds; if the filter stays off for 20 s while the parent has web protection on (for example the child chose "Forget VPN" or connected another VPN app), the phone shows the lock screen with **Turn web protection back on** (opens Android's one-time VPN prompt). Emergency calls and the parent PIN still work. The blocklists and the local AI classifier both run inside this filter, so the lock covers both.
+- **Always-on VPN (setup checklist, Android 10+):** the child's phone is walked through turning on Always-on VPN for K-Guard, so Android restarts the filter itself and no other VPN app can replace it; the parent sees it as missing until it's on. "Block connections without VPN" is deliberately left off: the filter only carries DNS, so lockdown would cut the phone off the internet.
 
 - **Category blocklists** per age profile (shipped in assets, one domain per line, wildcard support).
 - **Local AI domain classifier** — sites on *no* list are judged **on-device** (offline, milliseconds) by a pattern scorer (`vpn/classifier/`): keyword weights per category, benign-vocabulary damping, punycode detection, per-age risk thresholds mirroring the server's policy. Verdicts are cached (24h TTL, auto-invalidated when the age profile or rules change). A parent toggle turns the AI filter off; a swappable `DomainClassifier` interface is ready for a trained ONNX model later.
@@ -120,6 +122,7 @@ The child's phone runs an always-on enforcement engine (`KGuardCompanionService`
 |---|---|
 | AI Parent Assistant | Ported code exists on `origin/local-updates`; deferred until model calls go through a Cloud Function (no keys in the APK) |
 | K-Guard Live privacy review | Frames go to a third-party or self-hosted model; needs a privacy/legal review and server-side keys before public release |
+| Managed-device mode | Device-owner enrolment (factory reset + QR) would let K-Guard force Always-on VPN and block VPN settings entirely |
 | Full DoH bypass coverage | Needs TCP/443 routing + TLS SNI sniffing (planned phase 2) |
 | Telemetry write volume | The child's phone writes its device document at least once a minute and on app switches; trim before scaling |
 | DST edge in quiet hours | Frozen `utcOffsetMinutes` gives wrong windows across DST transitions |

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -75,7 +76,7 @@ private val LockBorder = Color.White.copy(alpha = 0.25f)
 private const val MAX_FAILED_ATTEMPTS = 5
 private const val LOCKOUT_MILLIS = 30_000L
 
-enum class LockScreenKind { REMOTE, BEDTIME, LIMIT, APP_BLOCK }
+enum class LockScreenKind { REMOTE, BEDTIME, LIMIT, APP_BLOCK, WEB_OFF }
 
 @Composable
 fun LockScreenContent(
@@ -85,6 +86,8 @@ fun LockScreenContent(
     footnote: String,
     onEmergencyCall: () -> Unit,
     onDismissAppBlock: () -> Unit,
+    /** WEB_OFF only: restarts web protection (or opens Android's one-time VPN prompt). */
+    onTurnWebBackOn: () -> Unit = {},
     /** Checks the parent PIN; calls back with (success, error message). */
     onParentPinUnlock: (String, (Boolean, String?) -> Unit) -> Unit
 ) {
@@ -105,6 +108,7 @@ fun LockScreenContent(
         LockScreenKind.BEDTIME -> Icons.Default.Bedtime
         LockScreenKind.LIMIT -> Icons.Default.HourglassBottom
         LockScreenKind.APP_BLOCK -> Icons.Default.Block
+        LockScreenKind.WEB_OFF -> Icons.Default.Public
         LockScreenKind.REMOTE -> Icons.Default.Lock
     }
 
@@ -157,6 +161,14 @@ fun LockScreenContent(
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                     shape = KGShapes.pill
                 ) { Text("OK") }
+            } else if (kind == LockScreenKind.WEB_OFF && !showPin) {
+                Button(
+                    onClick = onTurnWebBackOn,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                    shape = KGShapes.pill
+                ) { Text("Turn web protection back on") }
+                TextButton(onClick = { showPin = true }) { Text("Parent PIN Unlock", color = LockTextMuted) }
             } else if (showPin) {
                 OutlinedTextField(
                     value = pinInput,

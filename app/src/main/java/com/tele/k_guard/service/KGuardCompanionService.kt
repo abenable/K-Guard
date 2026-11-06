@@ -96,6 +96,8 @@ class KGuardCompanionService : Service() {
     private var lastTelemetryAt = 0L
     private var lastHistoryAt = 0L
     private var blockedPkg: String? = null
+    /** When web protection was first seen off while the parent wants it on; 0 while it's fine. */
+    private var webOffSince = 0L
     private var blockShownAt = 0L
     @Volatile private var foregroundActivity: String? = null
     private var lastUninstallLockAt = 0L
@@ -253,6 +255,11 @@ class KGuardCompanionService : Service() {
             return
         }
 
+        // Web protection switched off on the phone while the parent wants it on: no filter, no phone.
+        // The grace period covers the sync's own automatic restart; Android's VPN prompt, K-Guard itself and
+        // the phone app stay usable so the child can turn it back on or make a call.
+        if (enforceWebProtection(fg, screenOn)) return
+
         // Phone not locked: per-app rules for whatever is in front.
         if (!screenOn) { overlay.hide(); blockedPkg = null; return }
         if (fg == null) {
@@ -276,6 +283,29 @@ class KGuardCompanionService : Service() {
             }
             AppRules.Verdict.Allowed -> if (overlay.isShowing) { overlay.hide(); blockedPkg = null }
         }
+    }
+
+    /** Returns true when the web-protection lock is handling the screen. */
+    private fun enforceWebProtection(fg: String?, screenOn: Boolean): Boolean {
+        val now = System.currentTimeMillis()
+        val off = com.tele.k_guard.vpn.ChildWebProtectionSync.wantsOn && !com.tele.k_guard.vpn.VpnState.running.value
+        webOffSince = if (!off) 0L else webOffSince.takeIf { it > 0 } ?: now
+        if (!off || !screenOn || now - webOffSince < WEB_OFF_GRACE_MS || now < LockOverlay.pinUnlockedUntil) return false
+        blockedPkg = null
+        val stepAside = now < LockOverlay.stepAsideUntil || fg == packageName || fg == VPN_DIALOGS_PACKAGE ||
+            (fg != null && fg == overlay.dialerPackage)
+        if (stepAside) {
+            overlay.hide()
+        } else if (!overlay.show(
+                LockOverlay.Mode.PHONE_LOCK,
+                "Web protection is off",
+                "Your parent keeps web protection on for this phone. Turn it back on to keep using it.",
+                null, childName, webOff = true
+            )
+        ) {
+            KGuardDeviceAdminReceiver.lockScreenNow(this) // no overlay permission
+        }
+        return true
     }
 
     private fun onLockChanged(old: LockDecision, new: LockDecision) {
@@ -425,7 +455,14 @@ class KGuardCompanionService : Service() {
         "notifications" to (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED),
         "batteryUnrestricted" to (getSystemService(Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(packageName)
-    )
+    ) + alwaysOnVpnStatus()
+
+    /** Reported only while the parent wants web protection and the running filter can tell (Android 10+). */
+    private fun alwaysOnVpnStatus(): Map<String, Boolean> {
+        if (!com.tele.k_guard.vpn.ChildWebProtectionSync.wantsOn) return emptyMap()
+        val on = com.tele.k_guard.vpn.KGuardVpnService.isAlwaysOn() ?: return emptyMap()
+        return mapOf("alwaysOnVpn" to on)
+    }
 
     private fun battery(): Pair<Int?, Boolean?> {
         val i = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return null to null
@@ -666,6 +703,9 @@ class KGuardCompanionService : Service() {
         private const val GUARD_CHANNEL_ID = "kguard_protection"
         private const val GUARD_NOTIFICATION_ID = 2003
         private const val BLOCK_NOTICE_MS = 4_000L
+        private const val WEB_OFF_GRACE_MS = 20_000L
+        /** Android's VPN consent / manage dialogs. */
+        private const val VPN_DIALOGS_PACKAGE = "com.android.vpndialogs"
 
         @Volatile
         var isRunning = false

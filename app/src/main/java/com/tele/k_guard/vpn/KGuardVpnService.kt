@@ -107,6 +107,7 @@ class KGuardVpnService : VpnService() {
         }
         tun = pfd
         running = true
+        instance = this
         VpnState.setRunning(true)
         store.setEnabled(true)
         showNotification()
@@ -243,6 +244,7 @@ class KGuardVpnService : VpnService() {
 
     private fun stopFiltering() {
         running = false
+        if (instance === this) instance = null
         QueryMonitor.flush()
         VpnState.setRunning(false)
         runCatching { tun?.close() }
@@ -279,6 +281,17 @@ class KGuardVpnService : VpnService() {
 
     companion object {
         const val ACTION_STOP = "com.tele.k_guard.vpn.STOP"
+
+        @Volatile private var instance: KGuardVpnService? = null
+
+        /**
+         * Whether Android's "Always-on VPN" is set for K-Guard; null while the filter isn't running or below
+         * Android 10 (the system only tells the running VPN). With it on, Android restarts the filter itself and
+         * no other VPN app can take over. ("Block connections without VPN" stays off: this VPN only carries DNS,
+         * so lockdown would cut the phone off the internet.)
+         */
+        fun isAlwaysOn(): Boolean? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) instance?.isAlwaysOn else null
         private const val TUN_ADDRESS = "10.0.0.2"
         private const val DNS_ADDRESS = "10.0.0.1"
         // A second, IPv6 fake resolver. Only this /128 is routed, so no other IPv6 traffic enters the tunnel.

@@ -1,5 +1,9 @@
 package com.tele.k_guard.ui.components
 
+import com.tele.k_guard.vpn.KGuardVpnService
+import com.tele.k_guard.vpn.ChildWebProtectionSync
+import android.provider.Settings
+import android.content.Intent
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -101,4 +105,18 @@ private fun setupSteps(context: Context, askNotifications: () -> Unit, askDevice
     add(SetupStep("Unrestricted battery", "Stops Android pausing protection to save battery.", OsUsageTracker.isIgnoringBatteryOptimizations(context)) {
         OsUsageTracker.openBatterySettings(context)
     })
+    // Only when the parent has web protection on and the running filter can tell (Android 10+).
+    if (ChildWebProtectionSync.wantsOn) KGuardVpnService.isAlwaysOn()?.let { on ->
+        add(
+            SetupStep(
+                "Always-on web protection",
+                "In VPN settings, tap the gear next to K-Guard and turn on Always-on VPN. Leave \"Block connections without VPN\" off.",
+                on
+            ) {
+                runCatching {
+                    context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            }
+        )
+    }
 }

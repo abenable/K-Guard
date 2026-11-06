@@ -64,20 +64,23 @@ class LockOverlay(private val context: Context) {
     /** Shows or updates the overlay. Returns false if Android does not allow it (permission missing). */
     fun show(
         mode: Mode, heading: String, message: String, untilMillis: Long?, childName: String?,
-        lockKind: LockKind? = null
+        lockKind: LockKind? = null,
+        webOff: Boolean = false
     ): Boolean {
         if (!canDraw()) return false
-        val key = "$mode|$lockKind|$heading|$message|$untilMillis"
+        val key = "$mode|$lockKind|$webOff|$heading|$message|$untilMillis"
         if (root != null && key == shownKey) return true
         return try {
             val kind = when {
                 mode == Mode.APP_BLOCK -> LockScreenKind.APP_BLOCK
+                webOff -> LockScreenKind.WEB_OFF
                 lockKind == LockKind.BEDTIME -> LockScreenKind.BEDTIME
                 lockKind == LockKind.LIMIT -> LockScreenKind.LIMIT
                 else -> LockScreenKind.REMOTE
             }
             val footnote = when {
                 mode == Mode.APP_BLOCK -> childName?.let { "K-Guard · $it" } ?: "K-Guard"
+                webOff -> "Emergency calls still work."
                 untilMillis != null -> "Unlocks at " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(untilMillis))
                 else -> "Ask your parent to unlock it."
             }
@@ -107,6 +110,15 @@ class LockOverlay(private val context: Context) {
         hide() // the service keeps the lock off only while the phone app is in front
         val dial = Intent(Intent.ACTION_DIAL, Uri.parse("tel:")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(dial) }
+    }
+
+    /** Steps aside for Android's VPN prompt (the engine keeps the lock off while it is in front). */
+    private fun turnWebBackOn() {
+        stepAsideUntil = System.currentTimeMillis() + STEP_ASIDE_MS
+        hide()
+        val consent = Intent(context, com.tele.k_guard.ui.screens.VpnConsentActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(consent) }.onFailure { Log.e(TAG, "Could not open the VPN prompt", it) }
     }
 
     private fun checkPin(pin: String, onResult: (Boolean, String?) -> Unit) {
@@ -139,6 +151,7 @@ class LockOverlay(private val context: Context) {
                         footnote = c.footnote,
                         onEmergencyCall = ::openDialer,
                         onDismissAppBlock = { goHome(); hide() },
+                        onTurnWebBackOn = ::turnWebBackOn,
                         onParentPinUnlock = ::checkPin
                     )
                 }
@@ -196,6 +209,13 @@ class LockOverlay(private val context: Context) {
         private const val TAG = "KGuardLock"
         /** How long a correct parent PIN unlocks the phone on the spot. */
         const val PIN_UNLOCK_MS = 30 * 60_000L
+
+        private const val STEP_ASIDE_MS = 15_000L
+
+        /** Set when the child taps "Turn web protection back on", so the VPN prompt isn't covered. */
+        @Volatile
+        var stepAsideUntil: Long = 0L
+            private set
 
         /** Set by a correct parent PIN; the engine leaves the phone unlocked until then. */
         @Volatile

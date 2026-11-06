@@ -56,6 +56,9 @@ object ChildWebProtectionSync {
     private var activeKey: String? = null
 
     @Volatile private var desiredOn = false
+
+    /** The parent has web protection on for this child (as last received; survives offline via Firestore cache). */
+    val wantsOn: Boolean get() = desiredOn
     @Volatile private var stoppingOnPurpose = false
     @Volatile private var lastReassertAt = 0L
     private var lastReported: WebDeviceStatus? = null

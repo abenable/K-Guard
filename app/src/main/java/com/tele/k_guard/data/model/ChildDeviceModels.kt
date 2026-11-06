@@ -119,6 +119,7 @@ data class ChildDevice(
             if (permissions["deviceAdmin"] == false) add("Device admin (switches the screen off when locking)")
             if (permissions["notifications"] == false) add("Notifications (warnings before bedtime and limits)")
             if (permissions["batteryUnrestricted"] == false) add("Unrestricted battery (stops Android pausing protection)")
+            if (permissions["alwaysOnVpn"] == false) add("Always-on VPN (Android keeps web protection running and no other VPN can replace it)")
         }
 }
 
