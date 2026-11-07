@@ -11,6 +11,7 @@ server.log
 .ngrok/
 *.iml
 .gradle
+.kotlin/
 /local.properties
 /.idea/
 .DS_Store
