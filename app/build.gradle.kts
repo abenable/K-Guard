@@ -32,7 +32,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.tele.k_guard"
+        applicationId = "com.kguard.app"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

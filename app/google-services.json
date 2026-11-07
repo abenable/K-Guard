@@ -1,44 +1,45 @@
 {
   "project_info": {
-    "project_number": "806029279640",
-    "project_id": "k-guarducc",
-    "storage_bucket": "k-guarducc.firebasestorage.app"
+    "project_number": "215733827805",
+    "project_id": "kguard-app",
+    "storage_bucket": "kguard-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:806029279640:android:e59a5beb47c90b5ff3ebed",
+        "mobilesdk_app_id": "1:215733827805:android:b7e5c54b06c85171d5c334",
         "android_client_info": {
-          "package_name": "com.tele.k_guard"
+          "package_name": "com.kguard.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "806029279640-8tt6nse9mlknhrbu34ics7pinnf2l3r8.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.tele.k_guard",
-            "certificate_hash": "a040b91ac2cdc6604e3913baa5e42fd9455b4c3c"
-          }
-        },
-        {
-          "client_id": "806029279640-lfli9qm2j81oha5jak33414eqocl78rf.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCrWQm9ipwtWNwy7EjMMj1j6eK9VgANJmE"
+          "current_key": "AIzaSyA7Dlp5KF43dPWwdTelcgzdBugr59ZkKGU"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "806029279640-lfli9qm2j81oha5jak33414eqocl78rf.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215733827805:android:fddb422d28b00e20d5c334",
+        "android_client_info": {
+          "package_name": "com.tele.k_guard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7Dlp5KF43dPWwdTelcgzdBugr59ZkKGU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
         }
       }
     }
