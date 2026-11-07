@@ -12,7 +12,28 @@
           "package_name": "com.kguard.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "215733827805-5459vjov8gtvdtjd86fjrshjg5tu1iat.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kguard.app",
+            "certificate_hash": "98b0b4a8a0b2b303f8fb1362265a24e489056e4f"
+          }
+        },
+        {
+          "client_id": "215733827805-hhc1n94a3gbu4h6nnhejfnpjodvc6rpk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kguard.app",
+            "certificate_hash": "de69761d65d665fa8b201b147c810d8f03c852ec"
+          }
+        },
+        {
+          "client_id": "215733827805-u00scuo4fmqkn9ungp95gs3lcupu26js.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA7Dlp5KF43dPWwdTelcgzdBugr59ZkKGU"
@@ -20,26 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:215733827805:android:fddb422d28b00e20d5c334",
-        "android_client_info": {
-          "package_name": "com.tele.k_guard"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA7Dlp5KF43dPWwdTelcgzdBugr59ZkKGU"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "215733827805-u00scuo4fmqkn9ungp95gs3lcupu26js.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
