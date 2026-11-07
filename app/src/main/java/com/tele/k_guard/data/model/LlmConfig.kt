@@ -33,6 +33,10 @@ object AiConfig {
     /** Tried in order; a model Google has retired (404) moves on to the next one. */
     val geminiModels = listOf("gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest")
 
+    /** A cloud model is set up for K-Guard Live's extra categories; without one, Live runs on the phone only. */
+    val cloudConfigured: Boolean
+        get() = selfHostedUrl.isNotBlank() || GeminiKeyRotationManager.keyCount > 0
+
     val provider: LlmProviderType
         get() = if (selfHostedUrl.isNotBlank()) LlmProviderType.SELF_HOSTED else LlmProviderType.GEMINI
 

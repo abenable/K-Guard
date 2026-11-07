@@ -1,5 +1,7 @@
 package com.tele.k_guard.live
 
+import android.graphics.Bitmap
+import android.content.Context
 import android.util.Base64
 import android.util.Log
 import com.tele.k_guard.data.model.AgeProfile
@@ -26,13 +28,38 @@ data class ScreenVerdict(
 }
 
 /**
- * Asks the vision model whether what is on the child's screen is suitable for their age group. Uses the
- * self-hosted model when configured (OpenAI-style vision messages), otherwise Gemini.
- * Returns null when no model could be reached; the caller simply tries again with the next frame.
+ * Decides whether what is on the child's screen is suitable for their age group.
+ *
+ * 1. On the phone, always: [NsfwScreenModel] (the model Trawl uses) checks for sexual content. Nothing leaves the phone.
+ * 2. Only if a cloud model is configured (`kguard.ai.url` or `kguard.gemini.keys`) and the screen passed step 1: the
+ *    self-hosted model (OpenAI-style vision messages), otherwise Gemini, checks the other categories.
+ * Returns null when nothing could check the frame; the caller simply tries again with the next one.
  */
-class LiveScreenAnalyzer {
+class LiveScreenAnalyzer(context: Context) {
+    private val local = NsfwScreenModel(context.applicationContext)
 
-    fun analyze(jpeg: ByteArray, age: AgeProfile, appLabel: String?): ScreenVerdict? {
+    fun analyze(frame: Bitmap, age: AgeProfile, appLabel: String?, jpeg: () -> ByteArray): ScreenVerdict? {
+        val p = runCatching { local.score(frame) }
+            .onFailure { Log.e(TAG, "On-device screen check failed", it) }
+            .getOrNull()
+        if (p != null) {
+            val level = NsfwScreenModel.verdictFor(p, age)
+            if (level != ScreenVerdict.Level.SAFE) return ScreenVerdict(
+                level = level,
+                category = "sexual",
+                reason = "Sexual content on screen" + (appLabel?.let { " in $it" } ?: "") + " (on-device check, ${(p * 100).toInt()}%).",
+                childMessage = "this looks like something that isn't meant for you, so K-Guard has covered it."
+            )
+        }
+        if (!AiConfig.cloudConfigured) {
+            return if (p == null) null else ScreenVerdict(ScreenVerdict.Level.SAFE, "none", "On-device check passed.", "")
+        }
+        return analyzeInCloud(jpeg(), age, appLabel)
+    }
+
+    fun close() = local.close()
+
+    private fun analyzeInCloud(jpeg: ByteArray, age: AgeProfile, appLabel: String?): ScreenVerdict? {
         val b64 = Base64.encodeToString(jpeg, Base64.NO_WRAP)
         val prompt = prompt(age, appLabel)
         if (AiConfig.provider == LlmProviderType.SELF_HOSTED) {

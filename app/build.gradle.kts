@@ -74,6 +74,10 @@ android {
         compose = true
         buildConfig = true
     }
+    // ONNX Runtime maps the model from a file; keep it uncompressed in the APK.
+    androidResources {
+        noCompress += "onnx"
+    }
 }
 
 dependencies {
@@ -108,6 +112,8 @@ dependencies {
 
     // Image loading
     implementation(libs.coil.compose)
+    // On-device screen model for K-Guard Live (see live/NsfwScreenModel.kt).
+    implementation(libs.onnxruntime.android)
     implementation(libs.coil.network.okhttp)
 
     // DataStore

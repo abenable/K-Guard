@@ -108,20 +108,19 @@ The child's phone runs an always-on enforcement engine (`KGuardCompanionService`
 
 ## 10. K-Guard Live (AI screen check, child's consent)
 
-- Started by the child from the dashboard; Android's screen-sharing prompt is the consent. A foreground service captures the screen every 5 s (540 px wide, near-duplicate frames skipped) and asks an AI model whether it is SAFE, CAUTION or HARMFUL.
+- Started by the child from the dashboard; Android's screen-sharing prompt is the consent. A foreground service captures the screen every 5 s (540 px wide, near-duplicate frames skipped).
+- **On-device check (always, offline):** every new screen is checked on the phone by Marqo's `nsfw-image-detection-384` (Apache-2.0, 22 MB, shipped in the APK under `assets/models/nsfw-384/`), the model and preprocessing Trawl (Crane AI Labs) uses, on ONNX Runtime. Thresholds per age: Kids/Pre-teens block at ≥ 0.90; Teens warn at ≥ 0.90 and block at ≥ 0.94; Adults warn at ≥ 0.94 (Trawl's measured points). No frame leaves the phone for this check.
+- **Cloud check (optional):** only when `kguard.ai.url` (self-hosted, OpenAI-compatible) or `kguard.gemini.keys` is set in `local.properties`, screens that pass the on-device check are also checked for the other categories (violence, self-harm, hate, drugs, …). Those frames do leave the phone; keys set there are compiled into that APK.
 - CAUTION covers the screen with a blurred copy and a message (reveal allowed only for teens/adults when the parent allows it); HARMFUL also sends the phone to the home screen. A soft edge glow shows Live is on.
 - Alerts land in the parent's review queue (at most one per category per app every 3 minutes).
-- **Model:** a self-hosted OpenAI-compatible server (`kguard.ai.url` / `kguard.ai.model` / `kguard.ai.key`) or Gemini (`kguard.gemini.keys`, comma-separated), all read from `local.properties` at build time and never committed. Keys set there are compiled into that APK.
-- **Privacy:** screen frames leave the phone for the model provider; review before a public release.
-
----
 
 ## Known gaps (tracked, not shipped)
 
 | Gap | Status |
 |---|---|
 | AI Parent Assistant | Ported code exists on `origin/local-updates`; deferred until model calls go through a Cloud Function (no keys in the APK) |
-| K-Guard Live privacy review | Frames go to a third-party or self-hosted model; needs a privacy/legal review and server-side keys before public release |
+| K-Guard Live, other categories on-device | Sexual content is checked on the phone; violence/weapons/gore still need the optional cloud model. Next: TinyCLIP zero-shot (also Trawl's) as a downloadable model pack |
+| K-Guard Live thresholds on screenshots | Thresholds were measured by Trawl on photos; re-measure on real screen captures |
 | Managed-device mode | Device-owner enrolment (factory reset + QR) would let K-Guard force Always-on VPN and block VPN settings entirely |
 | Full DoH bypass coverage | Needs TCP/443 routing + TLS SNI sniffing (planned phase 2) |
 | Telemetry write volume | The child's phone writes its device document at least once a minute and on app switches; trim before scaling |

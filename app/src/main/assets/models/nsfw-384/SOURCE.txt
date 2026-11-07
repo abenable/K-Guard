@@ -1,0 +1,5 @@
+nsfw-384.onnx: Marqo/nsfw-image-detection-384, https://huggingface.co/Marqo/nsfw-image-detection-384
+Licence: Apache-2.0 (LICENSE.txt). A fine-tune of timm vit_tiny_patch16_384 (Apache-2.0).
+Change: converted to ONNX (opset 17, fp32) with Trawl's scripts/export_private_model.py (Crane AI Labs, https://github.com/Crane-AI-Labs/trawl).
+sha256 3606b62b8eafb760654da5c2d51908aea2e0f9421cf9f75bc055d1fbf9c7defe, 22489942 bytes.
+K-Guard uses it on the child's phone to cover screens that look sexual during K-Guard Live. It can be wrong.

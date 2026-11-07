@@ -63,7 +63,7 @@ class LiveWatchService : Service() {
     private var captureThread: HandlerThread? = null
     private lateinit var glow: EdgeGlowOverlay
     private lateinit var shield: LiveShieldOverlay
-    private val analyzer = LiveScreenAnalyzer()
+    private val analyzer by lazy { LiveScreenAnalyzer(this) }
     private var startedAt = 0L
 
     private var familyId: String? = null
@@ -182,9 +182,8 @@ class LiveWatchService : Service() {
             val verdict = if (lastVerdict != null && hamming(hash, lastHash) <= SAME_SCREEN_BITS) {
                 lastVerdict
             } else {
-                val jpeg = toJpeg(frame)
                 val label = pkg?.let { usage.appLabel(it) }
-                val v = withContext(Dispatchers.IO) { analyzer.analyze(jpeg, age, label) } ?: continue
+                val v = withContext(Dispatchers.IO) { analyzer.analyze(frame, age, label) { toJpeg(frame) } } ?: continue
                 checks++
                 Log.d(TAG, "Check #$checks ${label ?: "?"}: ${v.level} ${v.category} – ${v.reason}")
                 lastHash = hash; lastVerdict = v
@@ -325,6 +324,7 @@ class LiveWatchService : Service() {
     override fun onDestroy() {
         running = false
         scope.cancel()
+        analyzer.close() // frees the on-device model's memory
         glow.hide()
         shield.hide()
         display?.release(); display = null
