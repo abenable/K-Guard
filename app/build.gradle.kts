@@ -58,7 +58,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            ndk {
+                // Phones and emulators (x86_64) both stay testable.
+                abiFilters += listOf("arm64-v8a", "x86_64")
+            }
+        }
         release {
+            ndk {
+                // Real phones only; the emulator-only x86 ABIs would otherwise
+                // add ~70 MB of unused ONNX Runtime copies to the APK.
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
