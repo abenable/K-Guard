@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.minHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -185,7 +184,7 @@ fun KGChip(
             else -> KGColors.inkMuted
         },
         border = if (selected) null else BorderStroke(1.dp, KGColors.hairline),
-        modifier = modifier.minHeight(36.dp)
+        modifier = modifier.heightIn(min = 36.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
