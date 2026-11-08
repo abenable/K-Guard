@@ -77,7 +77,7 @@ service cloud.firestore {
       match /appIcons/{appId} {
         allow read: if isParent(familyId);
         allow create, update: if isLinkedChild(familyId, request.resource.data.childId)
-                              && request.resource.data.png.size() < 50_000;
+                              && request.resource.data.png.size() < 50000;
         allow delete: if isParent(familyId);
       }
       // Install and uninstall history, written by Cloud Functions.
