@@ -49,9 +49,10 @@ fun PhoneLockDialog(
         if (hh !in 0..23 || mm !in 0..59) return null
         return hh * 60 + mm
     }
-    val startsIn = if (startCustom) minutes(startH, startM) else (startQuick ?: 0)
+    // A custom start that doesn't parse is invalid (-1), quick picks are minutes, null quick = now (0).
+    val startsIn = if (startCustom) minutes(startH, startM) ?: -1 else (startQuick ?: 0)
     val duration = if (durationCustom) minutes(forH, forM) else durationQuick
-    val valid = startsIn != null && startsIn >= 0 && (!durationCustom || (duration != null && duration > 0))
+    val valid = startsIn >= 0 && (!durationCustom || (duration != null && duration > 0))
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -88,7 +89,7 @@ fun PhoneLockDialog(
         confirmButton = {
             KGPrimaryButton(
                 text = "Lock phone",
-                onClick = { if (valid) onConfirm(startsIn ?: 0, duration) },
+                onClick = { if (valid) onConfirm(startsIn, duration) },
                 enabled = valid
             )
         },
