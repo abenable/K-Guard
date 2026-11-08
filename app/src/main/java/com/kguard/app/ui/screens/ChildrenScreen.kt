@@ -680,7 +680,7 @@ fun ChildEditorScreenPreview() {
             existing = child,
             busy = false,
             error = null,
-            onSaveChild = { _, _ -> },
+            onSaveChild = { _, _, _ -> },
             onDeleteChild = {},
             onNavigateBack = {}
         )
