@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.minHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -148,6 +150,53 @@ fun KGTextLink(
         modifier = modifier.heightIn(min = 44.dp)
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/**
+ * A choice pill: full-round sides, brand colours, a hairline edge at rest. The one chip voice in the
+ * app — screens use this instead of Material's default FilterChip, whose small radius and palette
+ * drift from the design language.
+ */
+@Composable
+fun KGChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    /** Container colour when selected; defaults to the theme's primary. */
+    selectedColor: Color? = null,
+    /** Optional icon or avatar shown before the text. */
+    leading: (@Composable () -> Unit)? = null
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = KGShapes.pill,
+        color = when {
+            selected -> selectedColor ?: MaterialTheme.colorScheme.primary
+            enabled -> MaterialTheme.colorScheme.surfaceContainerLow
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        contentColor = when {
+            selected -> MaterialTheme.colorScheme.onPrimary
+            enabled -> MaterialTheme.colorScheme.onSurface
+            else -> KGColors.inkMuted
+        },
+        border = if (selected) null else BorderStroke(1.dp, KGColors.hairline),
+        modifier = modifier.minHeight(36.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            if (leading != null) {
+                leading()
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
     }
 }
 

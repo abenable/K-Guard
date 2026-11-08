@@ -200,6 +200,7 @@ fun AppNavigation(
 
         composable(Screen.ChildDashboard.route) {
             ChildDashboardScreen(
+                session = session,
                 childProfile = selectedChild,
                 familyId = familyId,
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
@@ -234,6 +235,7 @@ fun AppNavigation(
             HomeScreen(
                 activeAgeProfile = activeAgeProfile,
                 activeChildName = selectedChild?.name,
+                parentName = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.displayName,
                 openAlertCount = openAlerts,
                 pendingApprovalCount = pendingApprovalsCount,
                 onNavigateToTextModeration = { navController.navigate(Screen.TextModeration.route) },

@@ -1,6 +1,7 @@
 package com.kguard.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,6 +88,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun ChildDashboardScreen(
+    session: com.kguard.app.viewmodel.SessionViewModel? = null,
     childProfile: ChildProfile?,
     onNavigateToProfile: () -> Unit = {},
     familyId: String? = null,
@@ -94,6 +96,14 @@ fun ChildDashboardScreen(
 ) {
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
+
+    // First install: walk through every Android permission before the dashboard appears, so screen time,
+    // locking, app blocking and uninstall protection actually work from day one. Once seen (or complete),
+    // the dashboard's setup card takes over as a quiet fallback.
+    if (!isPreview && !onboardingSeen(context) && !childPermissionsComplete(context)) {
+        PermissionsOnboardingScreen(onAllDone = {}, onSkip = {})
+        return
+    }
 
     // Start the enforcement engine; it resolves the family and child itself and stops on a parent's phone.
     LaunchedEffect(Unit) {
@@ -118,6 +128,8 @@ fun ChildDashboardScreen(
 
     // Removal needs the parent's PIN; the companion service raises this prompt when someone tries.
     var showRemoveDialog by rememberSaveable { mutableStateOf(false) }
+    val sessionBusy = session?.busy
+    val sessionError = session?.error
     val removePromptRequested by UninstallGuard.promptRequested.collectAsState()
     LaunchedEffect(removePromptRequested) {
         if (removePromptRequested) {
@@ -215,6 +227,38 @@ fun ChildDashboardScreen(
             }
 
             if (!isPreview) ProtectionSetupCard()
+
+            // The child asks for an app right here: pick from this phone, the parent approves remotely.
+            if (!isPreview && childProfile != null && session != null) {
+                var showRequestApp by rememberSaveable { mutableStateOf(false) }
+                val sessionBusy by session.busy.collectAsState()
+                val sessionError by session.error.collectAsState()
+                KGCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Want a new app?", style = MaterialTheme.typography.titleSmall)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Pick one from this phone and your parent gets a request to allow it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    KGPrimaryButton(
+                        text = "Request an app",
+                        leading = { Icon(Icons.Default.Apps, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = { showRequestApp = true },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (showRequestApp) {
+                    RequestAppDialog(
+                        session = session,
+                        childId = childProfile.id,
+                        busy = sessionBusy,
+                        error = sessionError,
+                        onDismiss = { showRequestApp = false }
+                    )
+                }
+            }
 
             KGSectionHeader(
                 title = "Protection on this phone",
@@ -411,4 +455,113 @@ fun ChildDashboardPreview() {
     KGuardTheme {
         ChildDashboardScreen(childProfile = ChildProfile(name = "Ama"))
     }
+}
+
+/** One installed launchable app, for the child's own "request an app" picker. */
+private data class InstalledApp(val label: String, val packageName: String)
+
+/**
+ * The child picks one of THIS phone's installed apps and sends an approval request to the parent,
+ * who allows it (with a limit) from app management. Requests go through the Cloud Function.
+ */
+@Composable
+private fun RequestAppDialog(
+    session: com.kguard.app.viewmodel.SessionViewModel,
+    childId: String,
+    busy: Boolean,
+    error: String?,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+
+    // Labels and packages come from the child's own launcher list; K-Guard itself is excluded.
+    val installed = remember {
+        val pm = context.packageManager
+        runCatching {
+            pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
+                .mapNotNull { info ->
+                    (info.loadLabel(pm) as? String)?.takeIf { it.isNotBlank() }?.let { InstalledApp(it, info.activityInfo.packageName) }
+                }
+                .distinctBy { it.packageName }
+                .filter { it.packageName != context.packageName }
+                .sortedBy { it.label.lowercase() }
+        }.getOrDefault(emptyList())
+    }
+    var query by rememberSaveable { mutableStateOf("") }
+    var picked by remember { mutableStateOf<InstalledApp?>(null) }
+    var sent by remember { mutableStateOf(false) }
+
+    val matches = installed.filter { it.label.contains(query.trim(), ignoreCase = true) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Request an app", style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (sent) {
+                    Text(
+                        "Request sent! Your parent gets a notification and can allow it with a daily limit.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        "Choose one of the apps on this phone. Your parent is asked to allow it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    KGTextField(value = query, onValueChange = { query = it }, label = "Search apps")
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        if (picked == null) {
+                            matches.take(40).forEach { app ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { picked = app }
+                                        .padding(vertical = 8.dp)
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(app.label, style = MaterialTheme.typography.bodyMedium)
+                                        Text(app.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            if (matches.isEmpty()) Text(
+                                "No app matches \"$query\".",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text("Send a request for:", style = MaterialTheme.typography.labelLarge)
+                            Text(picked!!.label, style = MaterialTheme.typography.titleMedium)
+                            error?.let { Text(it, color = KGColors.danger, style = MaterialTheme.typography.bodySmall) }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                sent -> KGPrimaryButton(text = "Done", onClick = onDismiss)
+                picked != null -> KGPrimaryButton(
+                    text = if (busy) "Sending…" else "Send request",
+                    enabled = !busy,
+                    onClick = {
+                        session.requestAppInstall(
+                            childId = childId,
+                            appName = picked!!.label,
+                            packageName = picked!!.packageName
+                        )
+                        sent = true
+                    }
+                )
+            }
+        },
+        dismissButton = { KGTextLink(text = if (sent) "Close" else "Cancel", onClick = onDismiss) }
+    )
 }

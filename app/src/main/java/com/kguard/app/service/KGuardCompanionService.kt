@@ -358,6 +358,7 @@ class KGuardCompanionService : Service() {
                     )
                 }.toMap()
                 wakeUp = true
+                scope.launch { uploadAppIcons(fid, appPolicies.keys.toList()) }
             }
 
         listeners += db.collection("families/$fid/commands")
@@ -370,6 +371,7 @@ class KGuardCompanionService : Service() {
                     val action = doc.getString("action") ?: ""
                     val fresh = System.currentTimeMillis() - sentAt < COMMAND_TTL_MS
                     if (fresh && action == "sound_alarm") scope.launch(Dispatchers.Main) { playAlarm() }
+                    if (fresh && action == "start_live") scope.launch(Dispatchers.Main) { promptLiveCheck() }
                     // Lock, unlock, limits and schedules are applied from the rules document; the command
                     // record is the parent's audit log and delivery receipt.
                     doc.reference.update(
@@ -447,8 +449,37 @@ class KGuardCompanionService : Service() {
         }
     }
 
-    /** Everything this phone needs for full protection; the parent sees what is missing. */
-    private fun permissionStatus(): Map<String, Boolean> = mapOf(
+    // ---------------------------------------------------------------- app icons for the parent
+    /**
+     * Uploads a small PNG icon per managed app so the parent's app management shows real icons. Skips
+     * anything already stored; new installs get picked up by the package receiver's inventory report.
+     */
+    private suspend fun uploadAppIcons(fid: String, packages: List<String>) = runCatching {
+        for (pkg in packages.take(40)) {
+            val doc = db.document("families/$fid/appIcons/$pkg")
+            if (doc.get().await().exists()) continue
+            val drawable = runCatching { packageManager.getApplicationIcon(pkg) }.getOrNull() ?: continue
+            val size = 48
+            val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(canvas)
+            val png = java.io.ByteArrayOutputStream().use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 90, out)
+                out.toByteArray()
+            }
+            bitmap.recycle()
+            doc.set(
+                mapOf(
+                    "png" to android.util.Base64.encodeToString(png, android.util.Base64.NO_WRAP),
+                    "childId" to childId,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+        }
+    }.onFailure { Log.w(TAG, "App icon upload failed (will retry on next rules change)", it) }
+
+    /** Everything this phone needs for full protection; the parent sees what is missing. */    private fun permissionStatus(): Map<String, Boolean> = mapOf(
         "usageAccess" to reader.hasAccess(),
         "overlay" to overlay.canDraw(),
         "deviceAdmin" to KGuardDeviceAdminReceiver.isAdminActive(this),
@@ -484,7 +515,10 @@ class KGuardCompanionService : Service() {
                 ?: return "Connected"
         }
         return when {
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                val ssid = wifiName()
+                if (ssid != null) "Wi-Fi · $ssid" else "Wi-Fi"
+            }
             caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
                 // The carrier name needs no extra permission (the Wi-Fi network name would need location).
                 val carrier = (getSystemService(Context.TELEPHONY_SERVICE) as? android.telephony.TelephonyManager)
@@ -495,6 +529,19 @@ class KGuardCompanionService : Service() {
             else -> "Connected"
         }
     }
+
+    /**
+     * The connected Wi-Fi network's name, for the parent's screen time page. Android gates SSIDs behind
+     * the location permission (and location services being on); without it the parent just sees "Wi-Fi".
+     */
+    private fun wifiName(): String? = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) return null
+        @Suppress("DEPRECATION")
+        val info = (getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager)?.connectionInfo ?: return null
+        info.ssid?.removeSurrounding("\"")?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+    }.getOrNull()
 
     // ---------------------------------------------------------------- child-facing notices
     private fun warnIfClose(clock: LocalClock, used: Int) {
@@ -566,6 +613,37 @@ class KGuardCompanionService : Service() {
     }
 
     // ---------------------------------------------------------------- alarm
+    /**
+     * The parent asked for a Live screen check. Android 10+ forbids a background service from opening an
+     * activity, so a full-screen notification carries the request: when it fires, the Live consent screen
+     * takes over and the child taps Android's screen-sharing prompt. Nothing is captured without it.
+     */
+    private fun promptLiveCheck() {
+        KGuardMessagingService.ensureChannel(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
+        val open = PendingIntent.getActivity(
+            this, 11,
+            Intent(this, com.kguard.app.live.LiveSessionActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val n = NotificationCompat.Builder(this, KGuardMessagingService.CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Your parent started a Live check")
+            .setContentText("Tap to review what is on your screen with them.")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .setTimeoutAfter(2 * 60_000L)
+            .setContentIntent(open)
+            .setFullScreenIntent(open, true)
+            .build()
+        runCatching { NotificationManagerCompat.from(this).notify(LIVE_PROMPT_NOTIFICATION_ID, n) }
+            .onFailure { Log.w(TAG, "Could not show the Live check prompt", it) }
+    }
+
     private fun playAlarm() {
         if (alarm != null) return
         try {
@@ -690,6 +768,7 @@ class KGuardCompanionService : Service() {
         const val CHANNEL_ID = "kguard_companion_service_channel"
         const val NOTIFICATION_ID = 2001
         private const val ALARM_NOTIFICATION_ID = 2002
+        private const val LIVE_PROMPT_NOTIFICATION_ID = 2004
         const val ACTION_START = "com.kguard.app.action.START_COMPANION"
         const val ACTION_STOP = "com.kguard.app.action.STOP_COMPANION"
         const val ACTION_SYNC = "com.kguard.app.action.SYNC_COMPANION"

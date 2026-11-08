@@ -120,9 +120,8 @@ The child's phone runs an always-on enforcement engine (`KGuardCompanionService`
 |---|---|
 | AI Parent Assistant | Ported code exists on `origin/local-updates`; deferred until model calls go through a Cloud Function (no keys in the APK) |
 | K-Guard Live, other categories on-device | Sexual content is checked on the phone; violence/weapons/gore still need the optional cloud model. Next: TinyCLIP zero-shot (also Trawl's) as a downloadable model pack |
-| K-Guard Live thresholds on screenshots | Thresholds were measured by Trawl on photos; re-measure on real screen captures |
-| Managed-device mode | Device-owner enrolment (factory reset + QR) would let K-Guard force Always-on VPN and block VPN settings entirely |
-| Full DoH bypass coverage | Needs TCP/443 routing + TLS SNI sniffing (planned phase 2) |
+| K-Guard Live thresholds on screenshots | Thresholds were measured by Trawl on photos; re-measure on real screen captures || Managed-device mode | Device-owner enrolment (factory reset + QR) would let K-Guard force Always-on VPN and block VPN settings entirely |
+| Full DoH bypass coverage | Public resolvers (Cloudflare, Google, Quad9, NextDNS incl. Brave's default, AdGuard, ControlD — IPv4+IPv6) are routed into the tunnel and dropped, so "secure DNS" falls back to the filtered system resolver. Still open: private DoH on arbitrary IPs (needs TCP/443 routing + TLS SNI sniffing, phase 2) |
 | Telemetry write volume | The child's phone writes its device document at least once a minute and on app switches; trim before scaling |
 | DST edge in quiet hours | Frozen `utcOffsetMinutes` gives wrong windows across DST transitions |
 | Pairing-code brute-force limiting | 6-digit codes are rate-limitable server-side; attempt counter recommended before rollout |

@@ -2,6 +2,7 @@ package com.kguard.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import com.kguard.app.data.model.AppAccessInfo
 import com.kguard.app.data.model.AppApprovalStatus
 import com.kguard.app.data.repository.ParentalControlsRepository
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppManagementViewModel(
@@ -46,6 +48,29 @@ class AppManagementViewModel(
             emit(emptyList())
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * Small PNG icons of the managed apps, uploaded by the child's phone into `families/{fid}/appIcons`.
+     * Fetched once per family; apps without one fall back to a letter avatar in the UI.
+     */
+    val appIcons: StateFlow<Map<String, android.graphics.Bitmap>> = _familyId.flatMapLatest { fid ->
+        if (fid == null) kotlinx.coroutines.flow.flowOf(emptyMap())
+        else kotlinx.coroutines.flow.flow {
+            emit(emptyMap())
+            val icons = LinkedHashMap<String, android.graphics.Bitmap>()
+            runCatching {
+                FirebaseFirestore.getInstance().collection("families/$fid/appIcons").get().await().documents.forEach { d ->
+                    val pkg = d.id
+                    val png = d.getString("png") ?: return@forEach
+                    runCatching {
+                        val bytes = android.util.Base64.decode(png, android.util.Base64.NO_WRAP)
+                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { icons[pkg] = it }
+                    }
+                }
+            }
+            emit(icons)
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
     fun setFamilyAndChild(familyId: String?, childId: String?) {
         if (familyId != null && familyId != _familyId.value) {

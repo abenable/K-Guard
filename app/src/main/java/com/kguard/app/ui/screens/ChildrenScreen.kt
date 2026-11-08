@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -66,6 +65,7 @@ import com.kguard.app.data.model.SafetyCategory
 import com.kguard.app.data.repository.ChildPhotoRepository
 import com.kguard.app.data.repository.ScreenTimeRepository
 import com.kguard.app.service.KGuardMessagingService
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGCard
 import com.kguard.app.ui.components.KGDangerButton
 import com.kguard.app.ui.components.KGEmptyState
@@ -494,19 +494,11 @@ fun ChildEditorContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val current = CategoryRule.fromId(rules[cat.id])
-                            FilterChip(
-                                selected = current == null,
-                                onClick = { rules = rules - cat.id },
-                                label = { Text("Default") }
-                            )
+                            KGChip("Default", current == null, onClick = { rules = rules - cat.id })
                             CategoryRule.entries
                                 .filter { !(cat.lockedAgainstRelaxing && it != CategoryRule.BLOCK) }
                                 .forEach { r ->
-                                    FilterChip(
-                                        selected = current == r,
-                                        onClick = { rules = rules + (cat.id to r.id) },
-                                        label = { Text(r.label) }
-                                    )
+                                    KGChip(r.label, current == r, onClick = { rules = rules + (cat.id to r.id) })
                                 }
                         }
                     }

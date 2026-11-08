@@ -56,12 +56,14 @@ fun ProtectionSetupCard(modifier: Modifier = Modifier) {
     val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { recheck() }
     // The device-admin screen must be started from this activity; it will not open as a new task.
     val deviceAdmin = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { recheck() }
+    val location = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { recheck() }
 
     val steps = remember(refresh) {
         setupSteps(
             context,
             askNotifications = { notifications.launch(Manifest.permission.POST_NOTIFICATIONS) },
-            askDeviceAdmin = { runCatching { deviceAdmin.launch(DeviceProtection.activationIntent(context)) } }
+            askDeviceAdmin = { runCatching { deviceAdmin.launch(DeviceProtection.activationIntent(context)) } },
+            askLocation = { location.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
         )
     }
     val missing = steps.filterNot { it.done }
@@ -90,7 +92,7 @@ fun ProtectionSetupCard(modifier: Modifier = Modifier) {
     }
 }
 
-private fun setupSteps(context: Context, askNotifications: () -> Unit, askDeviceAdmin: () -> Unit): List<SetupStep> = buildList {
+private fun setupSteps(context: Context, askNotifications: () -> Unit, askDeviceAdmin: () -> Unit, askLocation: () -> Unit): List<SetupStep> = buildList {
     add(SetupStep("Usage access", "Measures screen time and sees which app is open.", OsUsageTracker.hasUsageStatsPermission(context)) {
         OsUsageTracker.openUsageAccessSettings(context)
     })
@@ -98,6 +100,7 @@ private fun setupSteps(context: Context, askNotifications: () -> Unit, askDevice
         OsUsageTracker.openOverlaySettings(context)
     })
     add(SetupStep("Device admin", "Switches the screen off when a lock starts, and stops K-Guard being removed unnoticed.", DeviceProtection.isAdminActive(context), askDeviceAdmin))
+    add(SetupStep("Wi-Fi name (Location)", "Lets your parent see which Wi-Fi network this phone is connected to.", locationGranted(context), askLocation))
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         add(SetupStep("Notifications", "Warns you 10 minutes before bedtime or the end of your screen time.", granted, askNotifications))
@@ -120,3 +123,7 @@ private fun setupSteps(context: Context, askNotifications: () -> Unit, askDevice
         )
     }
 }
+
+private fun locationGranted(context: Context) = ContextCompat.checkSelfPermission(
+    context, Manifest.permission.ACCESS_FINE_LOCATION
+) == PackageManager.PERMISSION_GRANTED

@@ -72,6 +72,14 @@ service cloud.firestore {
                       && request.resource.data.dailyLimitMinutes >= 0 && request.resource.data.dailyLimitMinutes <= 1440;
         allow delete: if isParent(familyId);
       }
+      // Small per-app icons (PNG, a few KB) uploaded by the paired child's phone so the parent's
+      // app management shows the real icons; the child never reads them back.
+      match /appIcons/{appId} {
+        allow read: if isParent(familyId);
+        allow create, update: if isLinkedChild(familyId, request.resource.data.childId)
+                              && request.resource.data.png.size() < 50_000;
+        allow delete: if isParent(familyId);
+      }
       // Install and uninstall history, written by Cloud Functions.
       match /appActivity/{activityId} {
         allow read: if isParent(familyId);

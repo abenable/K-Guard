@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
@@ -58,6 +57,7 @@ import com.kguard.app.data.model.SafetyCategory
 import com.kguard.app.data.model.SafetyEvent
 import com.kguard.app.ui.components.ChildAvatar
 import com.kguard.app.ui.components.DecisionBadge
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGCard
 import com.kguard.app.ui.components.KGDangerButton
 import com.kguard.app.ui.components.KGEmptyState
@@ -159,11 +159,11 @@ private fun WebProtectionContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 children.forEach { c ->
-                    FilterChip(
-                        selected = c.id == child.id,
+                    KGChip(
+                        c.name,
+                        c.id == child.id,
                         onClick = { onSelectChild(c.id) },
-                        label = { Text(c.name) },
-                        leadingIcon = { ChildAvatar(c, 20.dp) }
+                        leading = { ChildAvatar(c, 20.dp) }
                     )
                 }
             }
@@ -412,12 +412,12 @@ private fun CategoriesTab(session: SessionViewModel, c: ChildProfile, editor: Pa
                     Modifier.fillMaxWidth().padding(top = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FilterChip(selected = shown == "Default", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules - cat.id)) }, label = { Text("Default") })
-                    FilterChip(selected = shown == "Block", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.BLOCK.id))) }, label = { Text("Block") })
+                    KGChip("Default", shown == "Default", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules - cat.id)) })
+                    KGChip("Block", shown == "Block", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.BLOCK.id))) })
                     if (!cat.lockedAgainstRelaxing || c.age == AgeProfile.ADULTS_18_PLUS) {
-                        FilterChip(selected = shown == "Warn", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.WARN.id))) }, label = { Text("Warn") })
-                        FilterChip(selected = shown == "Blur", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.BLUR.id))) }, label = { Text("Blur") })
-                        FilterChip(selected = shown == "Allow", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.ALLOW.id))) }, label = { Text("Allow") })
+                        KGChip("Warn", shown == "Warn", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.WARN.id))) })
+                        KGChip("Blur", shown == "Blur", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.BLUR.id))) })
+                        KGChip("Allow", shown == "Allow", enabled = !busy, onClick = { session.saveChild(c.copy(categoryRules = c.categoryRules + (cat.id to CategoryRule.ALLOW.id))) })
                     }
                 }
             }
@@ -511,8 +511,8 @@ private fun ActivityTab(session: SessionViewModel, editor: ParentWebEditor, webE
             hint = "Each blocked site creates an alert (one per site every 10 minutes). Notifications follow your Privacy & Notifications settings."
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
-            FilterChip(selected = onlyOpen, onClick = { onlyOpen = true }, label = { Text("Needs review") })
-            FilterChip(selected = !onlyOpen, onClick = { onlyOpen = false }, label = { Text("All") })
+            KGChip("Needs review", onlyOpen, onClick = { onlyOpen = true })
+            KGChip("All", !onlyOpen, onClick = { onlyOpen = false })
         }
         if (shown.isEmpty()) {
             Text(

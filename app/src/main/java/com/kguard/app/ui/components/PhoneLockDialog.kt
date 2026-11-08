@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +23,7 @@ import com.kguard.app.ui.theme.KGColors
 
 /**
  * Lock a child's phone: now or after a while, until the parent unlocks it or for a set time.
+ * Quick picks cover the common choices in one tap; "Custom…" reveals the hour/minute fields.
  * [onConfirm] gets the delay before the lock starts (0 = now) and its length (null = until unlocked).
  */
 @Composable
@@ -32,10 +32,14 @@ fun PhoneLockDialog(
     onDismiss: () -> Unit,
     onConfirm: (startsInMinutes: Int, durationMinutes: Int?) -> Unit
 ) {
-    var later by remember { mutableStateOf(false) }
+    // Start: null = now, a number = a quick pick, custom = the typed fields.
+    var startQuick by remember { mutableStateOf<Int?>(null) }
+    var startCustom by remember { mutableStateOf(false) }
     var startH by remember { mutableStateOf("0") }
     var startM by remember { mutableStateOf("30") }
-    var timed by remember { mutableStateOf(false) }
+    // Duration: null = until the parent unlocks, a number = a quick pick, custom = the typed fields.
+    var durationQuick by remember { mutableStateOf<Int?>(null) }
+    var durationCustom by remember { mutableStateOf(false) }
     var forH by remember { mutableStateOf("1") }
     var forM by remember { mutableStateOf("0") }
 
@@ -45,9 +49,9 @@ fun PhoneLockDialog(
         if (hh !in 0..23 || mm !in 0..59) return null
         return hh * 60 + mm
     }
-    val startsIn = if (later) minutes(startH, startM) else 0
-    val duration = if (timed) minutes(forH, forM) else null
-    val valid = startsIn != null && (!later || startsIn > 0) && (!timed || (duration != null && duration > 0))
+    val startsIn = if (startCustom) minutes(startH, startM) else (startQuick ?: 0)
+    val duration = if (durationCustom) minutes(forH, forM) else durationQuick
+    val valid = startsIn != null && startsIn >= 0 && (!durationCustom || (duration != null && duration > 0))
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -56,21 +60,25 @@ fun PhoneLockDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Starts", style = MaterialTheme.typography.labelLarge, color = KGColors.inkMuted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !later, onClick = { later = false }, label = { Text("Now") })
-                    FilterChip(selected = later, onClick = { later = true }, label = { Text("Later") })
+                    KGChip("Now", !startCustom && startQuick == null, onClick = { startQuick = null; startCustom = false })
+                    KGChip("In 30 min", !startCustom && startQuick == 30, onClick = { startQuick = 30; startCustom = false })
+                    KGChip("In 1 hour", !startCustom && startQuick == 60, onClick = { startQuick = 60; startCustom = false })
+                    KGChip("Custom…", startCustom, onClick = { startCustom = true })
                 }
-                if (later) HoursMinutes("In", startH, startM, { startH = it }, { startM = it })
+                if (startCustom) HoursMinutes("In", startH, startM, { startH = it }, { startM = it })
 
                 Spacer(Modifier.height(4.dp))
                 Text("Lasts", style = MaterialTheme.typography.labelLarge, color = KGColors.inkMuted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !timed, onClick = { timed = false }, label = { Text("Until I unlock") })
-                    FilterChip(selected = timed, onClick = { timed = true }, label = { Text("Set time") })
+                    KGChip("Until I unlock", !durationCustom && durationQuick == null, onClick = { durationQuick = null; durationCustom = false })
+                    KGChip("1 hour", !durationCustom && durationQuick == 60, onClick = { durationQuick = 60; durationCustom = false })
+                    KGChip("2 hours", !durationCustom && durationQuick == 120, onClick = { durationQuick = 120; durationCustom = false })
+                    KGChip("Custom…", durationCustom, onClick = { durationCustom = true })
                 }
-                if (timed) HoursMinutes("For", forH, forM, { forH = it }, { forM = it })
+                if (durationCustom) HoursMinutes("For", forH, forM, { forH = it }, { forM = it })
 
                 Text(
-                    if (later) "$childName gets a warning before the lock starts. Emergency calls always work."
+                    if (startsIn > 0) "$childName gets a warning before the lock starts. Emergency calls always work."
                     else "Emergency calls always work while the phone is locked.",
                     style = MaterialTheme.typography.bodySmall,
                     color = KGColors.inkMuted

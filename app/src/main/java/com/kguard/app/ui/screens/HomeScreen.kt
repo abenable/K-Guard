@@ -80,6 +80,7 @@ fun HomeScreen(
     onNavigateToAppManagement: () -> Unit,
     onNavigateToFlaggedContent: () -> Unit,
     activeChildName: String? = null,
+    parentName: String? = null,
     openAlertCount: Int = 0,
     pendingApprovalCount: Int = 0,
     onNavigateToPrivacy: () -> Unit = {},
@@ -144,14 +145,18 @@ fun HomeScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = KGColors.inkMuted
                     )
+                    // The signed-in parent's name, not the child's — the child belongs on the subtitle line.
                     Text(
-                        text = activeChildName ?: "No child profile yet",
+                        text = parentName?.takeIf { it.isNotBlank() } ?: "Parent",
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${activeAgeProfile.title} (${activeAgeProfile.ageRange}) · Tap to change",
+                        text = buildString {
+                            if (activeChildName != null) append("Watching over $activeChildName · ")
+                            append("${activeAgeProfile.title} (${activeAgeProfile.ageRange}) · Tap to change")
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = KGColors.inkMuted
                     )

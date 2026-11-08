@@ -153,6 +153,12 @@ class ScreenTimeViewModel(
     fun remoteSoundAlarm(@Suppress("UNUSED_PARAMETER") childId: String) =
         act("Playing an alarm on ${_selectedChildName.value}'s phone for 30 seconds.") { f, c, n -> repository.soundAlarm(f, c, n) }
 
+    /** Asks the child's phone to open the Live screen-check consent; the child taps the system prompt. */
+    fun startLiveCheck(@Suppress("UNUSED_PARAMETER") childId: String) =
+        act("A Live check was sent to ${_selectedChildName.value}'s phone. They still need to allow the screen prompt.") { f, c, n ->
+            repository.startLive(f, c, n)
+        }
+
     fun addBonusTime(@Suppress("UNUSED_PARAMETER") childId: String, bonusMinutes: Int) {
         val childToday = currentDevice.value.usageDate ?: SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         act("Added ${repository.formatDuration(bonusMinutes)} for today.") { f, c, n -> repository.addBonus(f, c, n, bonusMinutes, childToday) }

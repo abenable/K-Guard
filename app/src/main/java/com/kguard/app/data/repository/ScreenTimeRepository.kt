@@ -225,6 +225,10 @@ object ScreenTimeRepository {
     suspend fun soundAlarm(familyId: String, childId: String, childName: String) =
         apply(familyId, childId, childName, RemoteAction.SOUND_ALARM, "Played an alarm on the phone")
 
+    /** Asks the child's phone to start a K-Guard Live screen check (the child still taps the consent). */
+    suspend fun startLive(familyId: String, childId: String, childName: String) =
+        apply(familyId, childId, childName, RemoteAction.START_LIVE, "Asked for a Live screen check")
+
     /** Adds minutes for the child's current day only; they do not carry over to tomorrow. */
     suspend fun addBonus(familyId: String, childId: String, childName: String, minutes: Int, childToday: String) {
         val ref = deviceRef(familyId, childId)

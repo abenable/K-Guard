@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +42,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
 import com.kguard.app.R
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGPrimaryButton
 import com.kguard.app.ui.components.KGTextField
 import com.kguard.app.ui.components.KGuardLogo
@@ -137,19 +137,17 @@ fun SignInContent(
         Spacer(Modifier.height(20.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FilterChip(
-                selected = !isChildMode,
+            KGChip(
+                "Parent",
+                !isChildMode,
                 onClick = { isChildMode = false },
-                shape = KGShapes.pill,
-                label = { Text("Parent") },
-                leadingIcon = { androidx.compose.material3.Icon(Icons.Default.SupervisorAccount, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                leading = { androidx.compose.material3.Icon(Icons.Default.SupervisorAccount, contentDescription = null, modifier = Modifier.size(18.dp)) }
             )
-            FilterChip(
-                selected = isChildMode,
+            KGChip(
+                "Child device",
+                isChildMode,
                 onClick = { isChildMode = true },
-                shape = KGShapes.pill,
-                label = { Text("Child device") },
-                leadingIcon = { androidx.compose.material3.Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                leading = { androidx.compose.material3.Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(18.dp)) }
             )
         }
 

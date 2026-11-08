@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreTime
@@ -36,7 +37,6 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +82,7 @@ import com.kguard.app.ui.components.ChildPhoneHealthCard
 import com.kguard.app.ui.components.PhoneLockDialog
 import com.kguard.app.ui.components.TimeRangeDialog
 import com.kguard.app.ui.components.lastSeenText
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGDangerButton
 import com.kguard.app.ui.components.KGCard
 import com.kguard.app.ui.components.KGEmptyState
@@ -292,7 +293,8 @@ fun ScreenTimeDashboardContent(
                     onOpenSwitchOffDialog = { showSwitchOffDialog = true },
                     onOpenLockDialog = { showLockDialog = true },
                     onRemoteUnlock = onRemoteUnlock,
-                    onAddBonusTime = onAddBonusTime
+                    onAddBonusTime = onAddBonusTime,
+                    onStartLive = { viewModel.startLiveCheck(device.childId) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -410,10 +412,10 @@ fun ScreenTimeDashboardContent(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     quickReasons.forEach { reason ->
-                        FilterChip(
-                            selected = selectedReason == reason,
+                        KGChip(
+                            reason,
+                            selectedReason == reason,
                             onClick = { selectedReason = reason },
-                            label = { Text(reason, style = MaterialTheme.typography.labelLarge) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp)
@@ -710,7 +712,8 @@ fun RemoteSwitchOffHeroCard(
     onOpenSwitchOffDialog: () -> Unit,
     onOpenLockDialog: () -> Unit = {},
     onRemoteUnlock: () -> Unit,
-    onAddBonusTime: (Int) -> Unit
+    onAddBonusTime: (Int) -> Unit,
+    onStartLive: () -> Unit = {}
 ) {
     // Locked as reported by the phone, or a remote lock the parent set that the phone hasn't applied yet.
     val isLocked = device.isLocked || device.screenLock.isLocked
@@ -836,6 +839,13 @@ fun RemoteSwitchOffHeroCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                SpotlightPill(
+                    text = "Live check",
+                    icon = Icons.Default.Visibility,
+                    enabled = !busy,
+                    onClick = onStartLive,
+                    modifier = Modifier.weight(1f)
+                )
                 if (!isLocked) {
                     SpotlightPill(
                         text = "Later or timed",

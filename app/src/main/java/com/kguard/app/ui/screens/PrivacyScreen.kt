@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -34,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kguard.app.data.model.FamilyPrivacy
 import com.kguard.app.data.model.QuietHours
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGCard
 import com.kguard.app.ui.components.KGDangerButton
 import com.kguard.app.ui.components.KGPrimaryButton
@@ -179,7 +179,7 @@ fun PrivacyContent(
                 Spacer(Modifier.height(8.dp))
                 Text("Delete alerts after", style = MaterialTheme.typography.titleSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                    listOf(7, 30, 90).forEach { d -> FilterChip(selected = retainDays == d, onClick = { retainDays = d }, label = { Text("$d days") }) }
+                    listOf(7, 30, 90).forEach { d -> KGChip("$d days", retainDays == d, onClick = { retainDays = d }) }
                 }
             }
 

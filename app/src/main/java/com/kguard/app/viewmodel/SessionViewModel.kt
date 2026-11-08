@@ -205,6 +205,21 @@ class SessionViewModel : ViewModel() {
     }
 
     fun createPairingCode(childId: String) = launchBusy { _pairingCode.value = repo.createPairingCode(childId) }
+
+    /**
+     * The child's phone asks for an app: the request goes through the Cloud Function, so the parent is
+     * notified at once and approves or rejects from their app management.
+     */
+    fun requestAppInstall(childId: String?, appName: String, packageName: String, dailyLimitMinutes: Int = 30) = launchBusy {
+        val fid = _familyId.value ?: error("Your family is not ready yet.")
+        require(!childId.isNullOrBlank()) { "Pair this phone to a child first." }
+        com.kguard.app.data.repository.ParentalControlsRepository.requestAppApproval(
+            familyId = fid,
+            childId = childId,
+            appName = appName,
+            packageName = packageName
+        )
+    }
     fun sendChildOtp(childId: String) = createPairingCode(childId)
 
     fun review(eventId: String, action: ParentAction, note: String) = launchBusy {

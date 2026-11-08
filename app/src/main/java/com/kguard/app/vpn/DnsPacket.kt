@@ -25,6 +25,16 @@ object DnsPacket {
         }
     }
 
+    /** The destination IP of any IPv4/IPv6 packet, or null when the header is not readable. */
+    fun destination(packet: ByteArray, length: Int): ByteArray? {
+        if (length < 20) return null
+        return when (packet[0].toInt() shr 4) {
+            4 -> packet.copyOfRange(16, 20)
+            6 -> if (length < 40) null else packet.copyOfRange(24, 40)
+            else -> null
+        }
+    }
+
     private fun parseQuery4(packet: ByteArray, length: Int): Query? {
         val ihl = (packet[0].toInt() and 0x0f) * 4
         if (ihl < 20 || length < ihl + 8) return null

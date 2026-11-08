@@ -98,7 +98,13 @@ class KGuardVpnService : VpnService() {
             .addDnsServer(DNS_ADDRESS_V6)
             .addRoute(DNS_ADDRESS, 32)
             .addRoute(DNS_ADDRESS_V6, 128)
-            .setBlocking(true)
+        // Known public resolvers (DoH and plain) are routed into the tunnel too, where everything not
+        // addressed to K-Guard's own fake resolvers is dropped. A browser's built-in "secure DNS"
+        // (Brave enables it out of the box) then fails and falls back to the system resolver, which
+        // K-Guard filters. The upstream lookup itself uses protect(), so it never enters the tunnel.
+        for ((ip, prefix) in BLACKHOLED_ROUTES) runCatching { builder.addRoute(ip, prefix) }
+            .onFailure { Log.w(TAG, "Could not route $ip for blackholing", it) }
+        builder.setBlocking(true)
         val pfd = runCatching { builder.establish() }.getOrNull()
         if (pfd == null) {
             showNotification() // a startForegroundService must report in even when we cannot run
@@ -111,6 +117,8 @@ class KGuardVpnService : VpnService() {
         VpnState.setRunning(true)
         store.setEnabled(true)
         showNotification()
+        val ownDns4 = InetAddress.getByName(DNS_ADDRESS).address
+        val ownDns6 = InetAddress.getByName(DNS_ADDRESS_V6).address
 
         scope.launch {
             val input = FileInputStream(pfd.fileDescriptor)
@@ -119,6 +127,11 @@ class KGuardVpnService : VpnService() {
             while (running) {
                 val n = try { input.read(buf) } catch (e: Exception) { break }
                 if (n <= 0) continue
+                // Only K-Guard's own fake resolvers are answered. Anything else routed in here — a
+                // browser's built-in DoH, or a plain lookup to a foreign resolver — is dropped, so it
+                // times out and the app falls back to the system resolver, which K-Guard filters.
+                val dst = DnsPacket.destination(buf, n) ?: continue
+                if (!dst.contentEquals(ownDns4) && !dst.contentEquals(ownDns6)) continue
                 val q = DnsPacket.parseQuery(buf, n) ?: continue
                 handle(q, filter, store, output)
             }
@@ -298,6 +311,26 @@ class KGuardVpnService : VpnService() {
         private const val TUN_ADDRESS_V6 = "fd00:4b47:4b47:0::2"
         private const val DNS_ADDRESS_V6 = "fd00:4b47:4b47:0::1"
         private const val UPSTREAM_DNS = "1.1.1.1"
+
+        /**
+         * Public resolvers (DoH and plain) routed into the tunnel and dropped, so a browser's built-in
+         * "secure DNS" — Brave turns it on out of the box — cannot bypass the filter and falls back to
+         * the system resolver K-Guard controls. These ranges host no websites, so nothing legitimate dies.
+         */
+        private val BLACKHOLED_ROUTES = listOf(
+            "1.1.1.0" to 24, "1.0.0.0" to 24,                    // Cloudflare (1.1.1.1, family variants)
+            "8.8.8.8" to 32, "8.8.4.4" to 32,                    // Google
+            "9.9.9.9" to 32, "149.112.112.112" to 32,            // Quad9
+            "208.67.222.222" to 32, "208.67.220.220" to 32,      // OpenDNS
+            "94.140.14.14" to 32, "94.140.15.15" to 32,          // AdGuard
+            "45.90.28.0" to 24, "45.90.30.0" to 24,              // NextDNS (Brave's default DoH)
+            "76.76.2.0" to 24,                                   // ControlD
+            "2606:4700:4700::" to 48,                            // Cloudflare v6
+            "2001:4860:4860::" to 48,                            // Google v6
+            "2620:fe::" to 48,                                   // Quad9 v6
+            "2a10:50c0::" to 32,                                 // AdGuard v6
+            "2a07:a8c0::" to 32, "2a07:a8c1::" to 32             // NextDNS v6
+        )
         private const val CHANNEL = "web_protection"
         private const val NOTIFICATION_ID = 4711
 

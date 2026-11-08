@@ -198,14 +198,19 @@ object ChildWebProtectionSync {
             Intent(context, com.kguard.app.ui.screens.VpnConsentActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        // A full-screen intent, not a quiet card: the moment the parent switches web protection on, the
+        // consent screen appears on the phone so nobody has to go looking for it. Android still requires
+        // the one OK on this device — no app can grant that remotely.
         val n = NotificationCompat.Builder(context, KGuardMessagingService.CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Finish turning on web protection")
             .setContentText("Your parent turned on web protection. Tap, then choose OK to allow it on this phone.")
             .setStyle(NotificationCompat.BigTextStyle().bigText("Your parent turned on web protection. Tap, then choose OK to allow it on this phone."))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
             .setContentIntent(open)
+            .setFullScreenIntent(open, true)
             .build()
         NotificationManagerCompat.from(context).notify(CONSENT_NOTIFICATION_ID, n)
     }

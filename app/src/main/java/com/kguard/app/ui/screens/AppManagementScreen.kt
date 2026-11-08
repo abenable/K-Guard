@@ -1,5 +1,6 @@
 package com.kguard.app.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +30,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,6 +61,7 @@ import com.kguard.app.data.model.AppApprovalStatus
 import com.kguard.app.data.model.ChildProfile
 import com.kguard.app.ui.components.ChildAvatar
 import com.kguard.app.ui.components.KGDangerButton
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGEmptyState
 import com.kguard.app.ui.components.KGPrimaryButton
 import com.kguard.app.ui.components.KGSecondaryButton
@@ -84,6 +86,7 @@ fun AppManagementScreen(
     onNavigateBack: () -> Unit
 ) {
     val managedApps by viewModel.managedApps.collectAsState()
+    val appIcons by viewModel.appIcons.collectAsState()
     val busy by viewModel.busy.collectAsState()
     val error by viewModel.error.collectAsState()
     val message by viewModel.message.collectAsState()
@@ -257,19 +260,19 @@ fun AppManagementContent(
                     modifier = Modifier.padding(vertical = 4.dp)
                 ) {
                     item {
-                        FilterChip(
-                            selected = selectedChildId == null,
+                        KGChip(
+                            "All Children",
+                            selectedChildId == null,
                             onClick = { selectedChildId = null },
-                            label = { Text("All Children") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            leading = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         )
                     }
                     items(children) { c ->
-                        FilterChip(
-                            selected = selectedChildId == c.id,
+                        KGChip(
+                            c.name,
+                            selectedChildId == c.id,
                             onClick = { selectedChildId = c.id },
-                            label = { Text(c.name) },
-                            leadingIcon = { ChildAvatar(c, 20.dp) }
+                            leading = { ChildAvatar(c, 20.dp) }
                         )
                     }
                 }
@@ -281,31 +284,27 @@ fun AppManagementContent(
                 modifier = Modifier.padding(vertical = 6.dp)
             ) {
                 item {
-                    FilterChip(
-                        selected = selectedFilter == null,
-                        onClick = { selectedFilter = null },
-                        label = { Text("All (${scopedApps.size})") }
+                    KGChip("All (${scopedApps.size})", selectedFilter == null, onClick = { selectedFilter = null })
+                }
+                item {
+                    KGChip(
+                        "Needs Approval (${countOf(AppApprovalStatus.PENDING_REVIEW)})",
+                        selectedFilter == AppApprovalStatus.PENDING_REVIEW,
+                        onClick = { selectedFilter = AppApprovalStatus.PENDING_REVIEW }
                     )
                 }
                 item {
-                    FilterChip(
-                        selected = selectedFilter == AppApprovalStatus.PENDING_REVIEW,
-                        onClick = { selectedFilter = AppApprovalStatus.PENDING_REVIEW },
-                        label = { Text("Needs Approval (${countOf(AppApprovalStatus.PENDING_REVIEW)})") }
+                    KGChip(
+                        "Approved (${countOf(AppApprovalStatus.APPROVED)})",
+                        selectedFilter == AppApprovalStatus.APPROVED,
+                        onClick = { selectedFilter = AppApprovalStatus.APPROVED }
                     )
                 }
                 item {
-                    FilterChip(
-                        selected = selectedFilter == AppApprovalStatus.APPROVED,
-                        onClick = { selectedFilter = AppApprovalStatus.APPROVED },
-                        label = { Text("Approved (${countOf(AppApprovalStatus.APPROVED)})") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = selectedFilter == AppApprovalStatus.REJECTED,
-                        onClick = { selectedFilter = AppApprovalStatus.REJECTED },
-                        label = { Text("Rejected (${countOf(AppApprovalStatus.REJECTED)})") }
+                    KGChip(
+                        "Rejected (${countOf(AppApprovalStatus.REJECTED)})",
+                        selectedFilter == AppApprovalStatus.REJECTED,
+                        onClick = { selectedFilter = AppApprovalStatus.REJECTED }
                     )
                 }
             }
@@ -361,6 +360,7 @@ fun AppManagementContent(
                         ManagedAppCard(
                             app = app,
                             busy = busy,
+                            appIcons = appIcons,
                             onApprove = { onApprove(app.id) },
                             onReject = { onReject(app.id) },
                             onEditLimit = { editingAppId = app.id },
@@ -432,6 +432,7 @@ fun AppManagementContent(
 private fun ManagedAppCard(
     app: AppAccessInfo,
     busy: Boolean = false,
+    appIcons: Map<String, android.graphics.Bitmap> = emptyMap(),
     onApprove: () -> Unit,
     onReject: () -> Unit,
     onEditLimit: () -> Unit,
@@ -459,11 +460,21 @@ private fun ManagedAppCard(
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh, KGShapes.circle),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = app.appName.firstOrNull()?.uppercase() ?: "?",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    // The real icon when the child's phone has uploaded one; a letter avatar otherwise.
+                    val icon = appIcons[app.packageName]
+                    if (icon != null) {
+                        Image(
+                            bitmap = icon.asImageBitmap(),
+                            contentDescription = app.appName,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(
+                            text = app.appName.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -639,15 +650,15 @@ private fun RequestAppDialog(
                 Spacer(modifier = Modifier.height(4.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(presets) { (preset, age) ->
-                        FilterChip(
-                            selected = appName == preset.first,
+                        KGChip(
+                            preset.first,
+                            appName == preset.first,
                             onClick = {
                                 appName = preset.first
                                 packageName = preset.second
                                 category = preset.third
                                 minAgeRating = age
-                            },
-                            label = { Text(preset.first) }
+                            }
                         )
                     }
                 }

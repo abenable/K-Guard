@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +39,7 @@ import com.kguard.app.data.model.ParentAction
 import com.kguard.app.data.model.SafetyEvent
 import com.kguard.app.ui.components.ChildAvatar
 import com.kguard.app.ui.components.DecisionBadge
+import com.kguard.app.ui.components.KGChip
 import com.kguard.app.ui.components.KGCard
 import com.kguard.app.ui.components.KGDangerButton
 import com.kguard.app.ui.components.KGEmptyState
@@ -128,21 +128,21 @@ fun ReviewQueueContent(
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = onlyOpen, onClick = { onlyOpen = true }, label = { Text("Needs review (${searched.count { it.isOpen }})") })
-                FilterChip(selected = !onlyOpen, onClick = { onlyOpen = false }, label = { Text("All (${searched.size})") })
+                KGChip("Needs review (${searched.count { it.isOpen }})", onlyOpen, onClick = { onlyOpen = true })
+                KGChip("All (${searched.size})", !onlyOpen, onClick = { onlyOpen = false })
             }
             if (children.size > 1) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 4.dp).horizontalScroll(rememberScrollState())
                 ) {
-                    FilterChip(selected = childFilter == null, onClick = { childFilter = null }, label = { Text("Everyone") })
+                    KGChip("Everyone", childFilter == null, onClick = { childFilter = null })
                     children.forEach { c ->
-                        FilterChip(
-                            selected = childFilter == c.id,
-                             onClick = { childFilter = c.id },
-                            label = { Text(c.name) },
-                            leadingIcon = { ChildAvatar(c, 20.dp) }
+                        KGChip(
+                            c.name,
+                            childFilter == c.id,
+                            onClick = { childFilter = c.id },
+                            leading = { ChildAvatar(c, 20.dp) }
                         )
                     }
                 }
