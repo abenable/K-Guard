@@ -282,8 +282,14 @@ fun ChildEditorScreen(
         pairingCode = pairingCode,
         onGenerateCode = { id -> session.createPairingCode(id) },
         onClearCode = { session.clearPairingCode() },
-        onSaveChild = { updatedChild, newPhoto ->
-            session.saveChild(updatedChild, newPhoto, onDone = onNavigateBack)
+        onSaveChild = { updatedChild, newPhoto, onSaved ->
+            val isNew = existing == null
+            session.saveChild(updatedChild, newPhoto) { id ->
+                // New child: the pairing code is generated at once so the parent never has to come
+                // back and press "Generate pairing code" as a second step.
+                if (isNew) session.createPairingCode(id)
+                onSaved()
+            }
         },
         onDeleteChild = { id ->
             session.deleteChild(id, onNavigateBack)
@@ -301,8 +307,9 @@ fun ChildEditorContent(
     pairingCode: String? = null,
     onGenerateCode: (String) -> Unit = {},
     onClearCode: () -> Unit = {},
-    /** The profile plus a freshly picked photo (prepared JPEG bytes, uploaded on save), if any. */
-    onSaveChild: (ChildProfile, ByteArray?) -> Unit,
+    /** The profile plus a freshly picked photo (prepared JPEG bytes, uploaded on save). [onSaved]
+     *  runs after the profile (and optional photo) is safely stored, for post-save UI decisions. */
+    onSaveChild: (ChildProfile, ByteArray?, () -> Unit) -> Unit,
     onDeleteChild: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -334,6 +341,8 @@ fun ChildEditorContent(
     var rules by remember(existing?.id) { mutableStateOf(existing?.categoryRules ?: emptyMap()) }
     var allowReveal by remember(existing?.id) { mutableStateOf(existing?.allowReveal ?: false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    /** True right after Save created a brand-new child, so the auto-shown pairing dialog returns to the list on Done. */
+    var justSavedNewChild by remember { mutableStateOf(false) }
     val age = AgeProfile.fromId(ageId)
     val revealAllowed = age == AgeProfile.TEENS_13_17 || age == AgeProfile.ADULTS_18_PLUS
 
@@ -566,13 +575,18 @@ fun ChildEditorContent(
             KGPrimaryButton(
                 text = if (busy) "Saving…" else "Save",
                 onClick = {
+                    justSavedNewChild = childId == null
                     onSaveChild(
                         (existing ?: ChildProfile()).copy(
                             name = name, email = existing?.email ?: "", photoUrl = photoUrl, ageProfile = ageId, categoryRules = rules,
                             allowReveal = allowReveal && (age == AgeProfile.TEENS_13_17 || age == AgeProfile.ADULTS_18_PLUS)
                         ),
                         newPhoto
-                    )
+                    ) {
+                        // Editing: go back as before. A new child stays here so the automatically
+                        // generated pairing code is seen at once; its dialog returns to the list.
+                        if (childId != null) onNavigateBack()
+                    }
                 },
                 enabled = name.isNotBlank() && !busy && !preparingPhoto,
                 modifier = Modifier.fillMaxWidth()
@@ -599,7 +613,7 @@ fun ChildEditorContent(
             )
         }
         AlertDialog(
-            onDismissRequest = onClearCode,
+            onDismissRequest = { onClearCode(); if (justSavedNewChild) onNavigateBack() },
             title = { Text("6-Digit Device Pairing OTP") },
             text = {
                 Column {
@@ -624,7 +638,7 @@ fun ChildEditorContent(
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = onClearCode) { Text("Done") } }
+            confirmButton = { TextButton(onClick = { onClearCode(); if (justSavedNewChild) onNavigateBack() }) { Text("Done") } }
         )
     }
 

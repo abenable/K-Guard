@@ -179,7 +179,7 @@ class SessionViewModel : ViewModel() {
      * Saves the profile, then uploads [newPhoto] (a JPEG from ChildPhotoRepository.prepare) so it shows on
      * every phone in the family. Only http(s) photo URLs are ever stored; a local path works on one phone only.
      */
-    fun saveChild(child: ChildProfile, newPhoto: ByteArray? = null, onDone: () -> Unit = {}) = launchBusy {
+    fun saveChild(child: ChildProfile, newPhoto: ByteArray? = null, onDone: (String) -> Unit = {}) = launchBusy {
         val fid = _familyId.value ?: error("Your family is not ready yet.")
         require(child.name.isNotBlank()) { "Please enter a name." }
         val clean = child.copy(photoUrl = child.photoUrl.takeIf { it.startsWith("http") }.orEmpty())
@@ -190,7 +190,7 @@ class SessionViewModel : ViewModel() {
             repo.updateChildPhoto(fid, id, url)
         }
         if (_selectedChildId.value == null) _selectedChildId.value = id
-        onDone()
+        onDone(id)
     }
 
     fun deleteChild(childId: String, onDone: () -> Unit = {}) = launchBusy {
