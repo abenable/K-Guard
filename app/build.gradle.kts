@@ -28,7 +28,7 @@ private val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.tele.k_guard"
+    namespace = "com.kguard.app"
     compileSdk = 37
 
     defaultConfig {

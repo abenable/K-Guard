@@ -4,7 +4,7 @@ K-Guard is a two-sided child-safety platform: a **parent app** for supervision a
 **child-device agent** for enforcement, backed by Firebase (Auth, Firestore, Cloud Functions, FCM,
 Storage). One install becomes either side based on the role chosen at sign-in.
 
-- **Package:** `com.tele.k_guard` · Android (Jetpack Compose), minSdk 24, targetSdk 35
+- **Package:** `com.kguard.app` · Android (Jetpack Compose), minSdk 24, targetSdk 35
 - **Backend:** Firebase Cloud Functions (`functions/src/index.ts`), Firestore, FCM
 - **Build:** APKs are built and run on the Mac testbed (studio-team02, with its emulator): `./gradlew :app:assembleDebug` / `:app:assembleRelease` · Tests: `./gradlew :app:testDebugUnitTest` (99 unit tests)
 

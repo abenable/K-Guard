@@ -92,7 +92,7 @@
             android:name=".protection.ProtectionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.tele.k_guard.protection.WATCHDOG" />
+                <action android:name="com.kguard.app.protection.WATCHDOG" />
             </intent-filter>
         </receiver>
         <service

@@ -351,7 +351,7 @@ firebase deploy --only functions
 ### 3. Demo Mode (Zero Backend Required for Previews)
 For quick offline testing or demo walkthroughs without network dependencies, start the app with demo arguments:
 ```powershell
-adb shell am start -n com.tele.k_guard/.MainActivity --es demo_route home --ei demo_tab 0
+adb shell am start -n com.kguard.app/.MainActivity --es demo_route home --ei demo_tab 0
 ```
 
 ---
@@ -374,7 +374,7 @@ npm test
 ### Android VPN & Packet Logic Tests
 Run the local JVM unit tests:
 ```powershell
-.\gradlew.bat testDebugUnitTest --tests com.tele.k_guard.vpn.VpnLogicTest
+.\gradlew.bat testDebugUnitTest --tests com.kguard.app.vpn.VpnLogicTest
 ```
 * Validates DNS header bitwise flags (QR, Opcode, RCODE).
 * Validates domain extraction from binary UDP packets.

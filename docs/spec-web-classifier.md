@@ -41,7 +41,7 @@ Classification slots into `DomainFilter.evaluate()` — unchanged call site in
 ### Classifier interface (swappable)
 
 ```kotlin
-package com.tele.k_guard.vpn.classifier
+package com.kguard.app.vpn.classifier
 
 interface DomainClassifier {
     /** @return null when the classifier cannot judge this domain. */
