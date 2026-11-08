@@ -191,6 +191,7 @@ fun ScreenTimeScreen(
         },
         onRemoteUnlock = { viewModel.remoteUnlock(device.childId) },
         onRemoteSoundAlarm = { viewModel.remoteSoundAlarm(device.childId) },
+        onStartLive = { viewModel.startLiveCheck(device.childId) },
         onAddBonusTime = { minutes -> viewModel.addBonusTime(device.childId, minutes) },
         onUpdateDailyLimit = { limit -> viewModel.updateDailyLimit(device.childId, limit) },
         onApplyAgeRecommendation = { viewModel.applyAgeRecommendation(device.childId, activeAgeProfile) },
@@ -214,6 +215,7 @@ fun ScreenTimeDashboardContent(
     onRemoteSwitchOff: (String) -> Unit,
     onRemoteUnlock: () -> Unit,
     onRemoteSoundAlarm: () -> Unit,
+    onStartLive: () -> Unit = {},
     onAddBonusTime: (Int) -> Unit,
     onUpdateDailyLimit: (Int) -> Unit,
     onApplyAgeRecommendation: () -> Unit,
@@ -294,7 +296,7 @@ fun ScreenTimeDashboardContent(
                     onOpenLockDialog = { showLockDialog = true },
                     onRemoteUnlock = onRemoteUnlock,
                     onAddBonusTime = onAddBonusTime,
-                    onStartLive = { viewModel.startLiveCheck(device.childId) }
+                    onStartLive = onStartLive
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

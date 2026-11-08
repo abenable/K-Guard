@@ -35,13 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.kguard.app.protection.DeviceProtection
 import com.kguard.app.service.KGuardCompanionService
 import com.kguard.app.ui.components.KGCard
 import com.kguard.app.ui.components.KGPrimaryButton
 import com.kguard.app.ui.components.KGSecondaryButton
-import com.kguard.app.ui.components.KGShapes
 import com.kguard.app.ui.theme.KGColors
 import com.kguard.app.util.OsUsageTracker
 import com.kguard.app.vpn.ChildWebProtectionSync

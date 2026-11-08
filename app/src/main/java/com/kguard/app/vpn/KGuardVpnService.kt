@@ -10,6 +10,7 @@ import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.kguard.app.MainActivity
@@ -103,7 +104,7 @@ class KGuardVpnService : VpnService() {
         // (Brave enables it out of the box) then fails and falls back to the system resolver, which
         // K-Guard filters. The upstream lookup itself uses protect(), so it never enters the tunnel.
         for ((ip, prefix) in BLACKHOLED_ROUTES) runCatching { builder.addRoute(ip, prefix) }
-            .onFailure { Log.w(TAG, "Could not route $ip for blackholing", it) }
+            .onFailure { Log.w("KGuardVpn", "Could not route $ip for blackholing", it) }
         builder.setBlocking(true)
         val pfd = runCatching { builder.establish() }.getOrNull()
         if (pfd == null) {
